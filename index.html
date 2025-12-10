@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Customer Enquiry Inbox</title>
+<style>
+
+        body {
+
+            font-family: "Segoe UI", Arial, sans-serif;
+
+            margin: 0;
+
+            background: #fafafa;
+
+            color: #222;
+
+            transition: background 0.3s, color 0.3s;
+
+        }
+
+        body.dark {
+
+            background: #1e1e28;
+
+            color: #eee;
+
+        }
+
+        header {
+
+            background: #fff;
+
+            color: #222;
+
+            padding: 20px;
+
+            text-align: center;
+
+            border-bottom: 1px solid #ddd;
+
+        }
+
+        body.dark header {
+
+            background: #2a2a36;
+
+            color: #eee;
+
+            border-color: #444;
+
+        }
+
+        .container {
+
+            max-width: 800px;
+
+            margin: 30px auto;
+
+            background: #fff;
+
+            padding: 30px;
+
+            border-radius: 12px;
+
+            transition: background 0.3s;
+
+        }
+
+        body.dark .container {
+
+            background: #2a2a36;
+
+        }
+
+        h2 {
+
+            margin-bottom: 15px;
+
+            font-weight: 500;
+
+        }
+
+        input, textarea, select {
+
+            width: 100%;
+
+            padding: 10px;
+
+            margin: 10px 0;
+
+            border-radius: 6px;
+
+            border: 1px solid #ccc;
+
+            font-size: 14px;
+
+            transition: border 0.2s;
+
+        }
+
+        body.dark input, body.dark textarea, body.dark select {
+
+            background: #3a3a47;
+
+            border-color: #555;
+
+            color: #eee;
+
+        }
+
+        input:focus, textarea:focus {
+
+            border-color: #888;
+
+            outline: none;
+
+        }
+
+        button {
+
+            padding: 10px 18px;
+
+            background: #555;
+
+            color: #fff;
+
+            border: none;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+
+            font-size: 14px;
+
+            transition: background 0.2s;
+
+        }
+
+        button:hover {
+
+            background: #333;
+
+        }
+
+        .toggle-btn {
+
+            position: fixed;
+
+            top: 15px;
+
+            right: 15px;
+
+            background: #888;
+
+            color: #fff;
+
+            border-radius: 50%;
+
+            width: 36px;
+
+            height: 36px;
+
+            border: none;
+
+            cursor: pointer;
+
+        }
+
+        body.dark .toggle-btn {
+
+            background: #555;
+
+        }
+
+        .card {
+
+            border: 1px solid #ddd;
+
+            border-radius: 10px;
+
+            padding: 15px;
+
+            margin-bottom: 12px;
+
+            transition: background 0.2s, border 0.2s;
+
+        }
+
+        body.dark .card {
+
+            border-color: #555;
+
+        }
+
+        .status-new { color: #007bff; font-weight: 500; }
+
+        .status-contacted { color: #ff8c00; font-weight: 500; }
+
+        .status-closed { color: #28a745; font-weight: 500; }
+
+        #searchBar {
+
+            width: 100%;
+
+            padding: 10px;
+
+            margin: 15px 0;
+
+            border-radius: 6px;
+
+            border: 1px solid #ccc;
+
+        }
+
+        body.dark #searchBar { border-color: #555; background: #3a3a47; color: #eee; }
+
+        #counter {
+
+            font-size: 12px;
+
+            color: #666;
+
+        }
+
+        body.dark #counter { color: #aaa; }
+
+        .success {
+
+            color: #28a745;
+
+            font-weight: bold;
+
+            opacity: 0;
+
+            transition: opacity 0.4s;
+
+            margin: 8px 0;
+
+        }
+</style>
+</head>
+<body>
+ 
+<button class="toggle-btn" onclick="toggleDarkMode()">🌙</button>
+ 
+<header>
+<h1>Customer Enquiry Inbox</h1>
+</header>
+ 
+<div class="container">
+ 
+    <h2>Submit an Enquiry</h2>
+<form id="enquiryForm">
+<input type="text" id="name" placeholder="Your name" required>
+<input type="email" id="email" placeholder="Your email" required>
+<textarea id="message" placeholder="Your message..." rows="4" maxlength="500" required></textarea>
+<div id="counter">0 / 500</div>
+<button type="submit">Submit</button>
+</form>
+<p id="submitStatus" class="success"></p>
+ 
+    <h2>Admin Dashboard</h2>
+<input type="text" id="searchBar" placeholder="Search by name or email...">
+<div id="enquiryList">Loading enquiries...</div>
+ 
+</div>
+ 
+<script type="module">
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+
+    import {
+
+        getFirestore,
+
+        collection,
+
+        addDoc,
+
+        serverTimestamp,
+
+        query,
+
+        orderBy,
+
+        onSnapshot,
+
+        doc,
+
+        updateDoc
+
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+ 
+    // Firebase configuration
+
+    const firebaseConfig = {
+
+        apiKey: "AIzaSyBbpg3N7w9OcIen5aqYRIPqWKzUi6jC8qw",
+
+        authDomain: "inquiry-24542.firebaseapp.com",
+
+        projectId: "inquiry-24542",
+
+        storageBucket: "inquiry-24542.firebasestorage.app",
+
+        messagingSenderId: "577858318556",
+
+        appId: "1:577858318556:web:b519342094bd03c3a60419"
+
+    };
+ 
+    // Initialize Firebase
+
+    const app = initializeApp(firebaseConfig);
+
+    const db = getFirestore(app);
+ 
+    const nameInput = document.getElementById("name");
+
+    const emailInput = document.getElementById("email");
+
+    const messageInput = document.getElementById("message");
+
+    const counter = document.getElementById("counter");
+
+    const statusMsg = document.getElementById("submitStatus");
+
+    const listDiv = document.getElementById("enquiryList");
+
+    const searchBar = document.getElementById("searchBar");
+ 
+    messageInput.addEventListener("input", () => {
+
+        counter.innerText = `${messageInput.value.length} / 500`;
+
+    });
+ 
+    document.getElementById("enquiryForm").addEventListener("submit", async (e) => {
+
+        e.preventDefault();
+
+        try {
+
+            await addDoc(collection(db, "enquiries"), {
+
+                name: nameInput.value,
+
+                email: emailInput.value,
+
+                message: messageInput.value,
+
+                status: "new",
+
+                createdAt: serverTimestamp()
+
+            });
+
+            statusMsg.innerText = "Submitted!";
+
+            statusMsg.style.opacity = 1;
+
+            setTimeout(() => { statusMsg.style.opacity = 0; }, 2500);
+
+            e.target.reset();
+
+            counter.innerText = "0 / 500";
+
+        } catch (err) {
+
+            alert("Error: " + err.message);
+
+        }
+
+    });
+ 
+    const q = query(collection(db, "enquiries"), orderBy("createdAt", "desc"));
+
+    onSnapshot(q, snapshot => render(snapshot));
+ 
+    function render(snapshot) {
+
+        listDiv.innerHTML = "";
+
+        snapshot.forEach(docSnap => {
+
+            const d = docSnap.data();
+
+            const term = searchBar.value.toLowerCase();
+
+            if (!(d.name.toLowerCase().includes(term) || d.email.toLowerCase().includes(term))) return;
+ 
+            const card = document.createElement("div");
+
+            card.className = "card";
+ 
+            let statusClass = "";
+
+            if (d.status === "new") statusClass = "status-new";
+
+            else if (d.status === "contacted") statusClass = "status-contacted";
+
+            else if (d.status === "closed") statusClass = "status-closed";
+ 
+            card.innerHTML = `
+<strong>${d.name}</strong> <span>(${d.email})</span><br>
+<div>${d.message}</div>
+<label>Status:</label>
+<select data-id="${docSnap.id}" class="${statusClass}">
+<option value="new" ${d.status==="new"?"selected":""}>New</option>
+<option value="contacted" ${d.status==="contacted"?"selected":""}>Contacted</option>
+<option value="closed" ${d.status==="closed"?"selected":""}>Closed</option>
+</select>
+
+            `;
+
+            listDiv.appendChild(card);
+
+        });
+ 
+        document.querySelectorAll("select").forEach(sel => {
+
+            sel.addEventListener("change", async (e) => {
+
+                const id = e.target.getAttribute("data-id");
+
+                const val = e.target.value;
+
+                await updateDoc(doc(db, "enquiries", id), { status: val });
+
+                e.target.className = "";
+
+                if(val==="new") e.target.classList.add("status-new");
+
+                else if(val==="contacted") e.target.classList.add("status-contacted");
+
+                else if(val==="closed") e.target.classList.add("status-closed");
+
+            });
+
+        });
+
+    }
+ 
+    searchBar.addEventListener("input", () => {
+
+        onSnapshot(q, snapshot => render(snapshot));
+
+    });
+</script>
+ 
+<script>
+
+    function toggleDarkMode() {
+
+        document.body.classList.toggle("dark");
+
+    }
+</script>
+ 
+</body>
+</html>
+
+ 
